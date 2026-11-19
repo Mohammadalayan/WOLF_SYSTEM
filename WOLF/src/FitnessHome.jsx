@@ -1,10 +1,16 @@
-import React from "react";
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import Workout from './WorkoutTimer.jsx';
-import { getTodayTotals } from "./Wolfstorage.jsx";
+
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  getTodayTotals,
+  getTodayWorkoutVolume,
+} from "./Wolfstorage.jsx";
+import { supabase } from "./supabase.js";
+import { calculateFitnessMetrics } from "./fitnessCalculations.jsx";
 import "./fitness.css";
 
-/* ---------- Small inline icons ---------- */
+/* ---------- Icons ---------- */
+
 const Flame = ({ size = 18, color = "#e8590c" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={color} aria-hidden="true">
     <path d="M12 2c1 3-1 4.5-2.5 6.5C8 10.5 7 12 7 14.5A5 5 0 0 0 12 20a5 5 0 0 0 5-5c0-2-1-3.2-2-4.5-.4 1.2-1.1 1.8-1.8 2C13.6 9.5 13.5 5 12 2z" />
@@ -37,11 +43,12 @@ const Book = ({ active }) => (
 );
 
 const User = ({ active }) => (
-  <svg width="28" height="28" viewBox="0 0 24 24" fill={active ? "#22e5ff" : "#9fb0c3"} aria-hidden="true">
+   <a href="./Auth.jsx"><svg width="28" height="28" viewBox="0 0 24 24" fill={active ? "#22e5ff" : "#9fb0c3"} aria-hidden="true">
     <circle cx="12" cy="12" r="11" />
     <circle cx="12" cy="9.5" r="3.6" fill="#0d1626" />
+   
     <path d="M5.5 19c1.3-3 3.8-4.4 6.5-4.4s5.2 1.4 6.5 4.4A10.8 10.8 0 0 1 12 23a10.8 10.8 0 0 1-6.5-4z" fill="#0d1626" />
-  </svg>
+  </svg></a>
 );
 
 const MuscleIcon = () => (
@@ -54,157 +61,593 @@ const MuscleIcon = () => (
 );
 
 const Sparkline = () => (
-  <svg width="100%" height="48" viewBox="0 0 120 48" preserveAspectRatio="none" aria-hidden="true">
-    <polyline fill="none" stroke="#9b6bff" strokeWidth="1.6" points="0,10 25,40 50,18 75,36 100,14 120,30" />
-    <polyline fill="none" stroke="#cfd6e3" strokeWidth="1.2" opacity="0.6" points="0,34 25,22 50,44 75,24 100,40 120,32" />
+  <svg className="fh-spark" width="100%" height="48" viewBox="0 0 120 48" preserveAspectRatio="none" aria-hidden="true">
+    <defs>
+      <linearGradient id="fh-spark-fill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#9b6bff" stopOpacity="0.35" />
+        <stop offset="100%" stopColor="#9b6bff" stopOpacity="0" />
+      </linearGradient>
+    </defs>
+    <polygon points="0,10 25,40 50,18 75,36 100,14 120,30 120,48 0,48" fill="url(#fh-spark-fill)" />
+    <polyline fill="none" stroke="#9b6bff" strokeWidth="1.8" vectorEffect="non-scaling-stroke" points="0,10 25,40 50,18 75,36 100,14 120,30" />
+    <polyline fill="none" stroke="#cfd6e3" strokeWidth="1.2" opacity="0.6" vectorEffect="non-scaling-stroke" points="0,34 25,22 50,44 75,24 100,40 120,32" />
   </svg>
 );
 
-/* ---------- Screen ---------- */
+/* ---------- BMI color helper ---------- */
+
+function bmiTone(category) {
+  const c = String(category || "").toLowerCase();
+
+  if (c.includes("obes")) return "high";
+  if (c.includes("over")) return "warn";
+  if (c.includes("under")) return "low";
+  if (c.includes("normal") || c.includes("healthy")) return "good";
+
+  return "none";
+}
+
+/* ---------- Dashboard ---------- */
+
 export default function FitnessHome({
-  workout = { title: "CHEST & TRICEPS FOCUS", minutes: 45, exercises: 5 },
-  calories = 1600, // الهدف اليومي (goal)
+  workout = {
+    title: "YOUR TRAINING PLAN",
+    minutes: 45,
+    exercises: 0,
+  },
   streak = 10,
-  volume = "14.2K",
   guidesViewed = 12,
   quote = {
     text: "Every action you take is a vote for the type of person you wish to become.",
     source: "From Atomic Habits by James Clear",
   },
-  onStart = () => {},
-  onAskFood = () => {},
   onNavigate = () => {},
   activeTab = "home",
 }) {
-  // نفس بيانات صفحة الأكل (WOLF): بتنقرأ كل ما الصفحة تنفتح
+  const navigate = useNavigate();
+
+  const [profile, setProfile] = useState(null);
+  const [metrics, setMetrics] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [profileError, setProfileError] = useState("");
+
+  /* ---------- Load user profile ---------- */
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDashboard() {
+      try {
+        const { data: authData, error: authError } =
+          await supabase.auth.getUser();
+
+        if (authError || !authData?.user) {
+          navigate("/auth", { replace: true });
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("user_id", authData.user.id)
+          .maybeSingle();
+
+        if (error) {
+          throw error;
+        }
+
+        if (!data) {
+          navigate("/profile-setup", { replace: true });
+          return;
+        }
+
+        if (isMounted) {
+          setProfile(data);
+          setMetrics(calculateFitnessMetrics(data));
+        }
+      } catch (error) {
+        console.error("DASHBOARD PROFILE ERROR:", error);
+
+        if (isMounted) {
+          setProfileError(
+            error.message || "Could not load your profile."
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDashboard();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [navigate]);
+
+  /* ---------- Food Tracker ---------- */
+
   const totals = getTodayTotals();
 
-  // نسبة السعرات من الهدف (لشريط التقدم بالتصميم فقط)
-  const percent = calories ? Math.min(100, Math.round(((Number(totals.calories) || 0) / calories) * 100)) : 0;
+  /* ---------- Workout Tracker ---------- */
 
-  const handleStartWorkout = () => {
-    <Routes>
-        <Route path="/workout" element={<Workout />} />
-    </Routes>
-     }
-  return (
-    <div className="fh-root">
+  const todayVolume = getTodayWorkoutVolume();
 
-      <div className="fh-screen">
-        {/* Container for Desktop/Tablet centering */}
-        <div className="fh-container">
-          
-          {/* Top bar */}
-          <header className="fh-top">
-            <div className="fh-avatar" aria-label="Profile photo" />
-            <div className="fh-streak">
-              <Flame size={20} color="#e8590c" />
-              <span>{streak} DAYS<br />DISCIPLINE</span>
-            </div>
-          </header>
+  /* ---------- Dynamic calorie goal ---------- */
 
-          <main className="fh-main">
-            {/* Hero */}
-            <section className="fh-card fh-hero">
-              <h1>{workout.title}</h1>
-              <p>{workout.minutes} Min / {workout.exercises} Exercises</p>
-              <Link to="/workout" className="fh-cta flex items-center justify-center text-center">
-                START WORKOUT
-              </Link>
-                
-            </section>
+  const calorieGoal = Number(metrics?.calorieTarget) || 0;
+  const consumedCalories = Number(totals.calories) || 0;
 
-            {/* Grid Area */}
-            <div className="fh-layout-grid">
-              
-              {/* Primary Stats Grid */}
-              <div className="fh-grid">
-                <section className="fh-card fh-tile fh-orange">
-                  <span className="fh-label">CALORIE GOAL</span>
-                  <div className="fh-row">
-                    <strong className="fh-big">{totals.calories}</strong>
-                    <Flame size={34} color="#ff7a1a" />
-                  </div>
-                  <span className="fh-unit">KCAL TODAY / {calories} GOAL</span>
-                  <div className="fh-progress">
-                    <div className="fh-progress-bar" style={{ width: `${percent}%` }} />
-                  </div>
+  const percent = calorieGoal
+    ? Math.min(
+        100,
+        Math.round((consumedCalories / calorieGoal) * 100)
+      )
+    : 0;
 
-                </section>
+  const remaining = calorieGoal - consumedCalories;
+  const isOver = calorieGoal > 0 && remaining < 0;
 
-                <section className="fh-card fh-tile fh-teal" >
-                  <span className="fh-label">CALORIE / FOOD AI</span>
-                  <button className="fh-ask" onClick={onAskFood}>
-                    <span className="fh-mic"><Mic /></span>
-                   <Link to="./ai" className="fh-ask-link"> <span className="fh-ask-text">Enter your calorie intake</span></Link>
-                  </button>
-                </section>
+  /* ---------- Volume formatting ---------- */
 
-                <section className="fh-card fh-tile fh-teal">
-                  <span className="fh-label">VOLUME PUMPED</span>
-                  <strong className="fh-big">{volume}</strong>
-                  <Sparkline />
-                </section>
+  const volumeDisplay =
+    todayVolume >= 1000
+      ? `${(todayVolume / 1000).toFixed(1)}K`
+      : todayVolume.toLocaleString();
 
-                <section className="fh-card fh-tile fh-teal">
-                  <span className="fh-label">MUSCLE GUIDE AI</span>
-                  <div className="fh-guide">
-                    <MuscleIcon />
-                    <div className="fh-guide-count">
-                      <strong>{guidesViewed}</strong>
-                      <span>GUIDE<br />VIEWED</span>
-                    </div>
-                  </div>
-                </section>
+  /* ---------- Loading ---------- */
+
+  if (loading) {
+    return (
+      <div className="fh-root">
+        <div className="fh-screen">
+          <div className="fh-container">
+            <main
+              className="fh-main fh-loading"
+              aria-busy="true"
+              aria-live="polite"
+            >
+              <span className="fh-sr-only">
+                Loading your dashboard
+              </span>
+
+              <div className="fh-skel fh-skel-hero" />
+
+              <div className="fh-skel-grid">
+                <div className="fh-skel" />
+                <div className="fh-skel" />
+                <div className="fh-skel" />
+                <div className="fh-skel" />
               </div>
 
-              {/* Sidebar Quote on Desktop */}
-              <section className="fh-card fh-quote">
-                <span className="fh-quote-title">QUOTE OF THE DAY</span>
-                <blockquote>"{quote.text}"</blockquote>
-                <cite>{quote.source}</cite>
-              </section>
+              <div className="fh-skel fh-skel-wide" />
+            </main>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
+  /* ---------- Error ---------- */
+
+  if (profileError) {
+    return (
+      <div className="fh-root">
+        <div className="fh-screen">
+          <div className="fh-container fh-state-wrap">
+            <div className="fh-card fh-state" role="alert">
+              <span className="fh-state-icon" aria-hidden="true">
+                !
+              </span>
+
+              <h2 className="fh-state-title">
+                Could not load your profile
+              </h2>
+
+              <p className="fh-state-text">
+                {profileError}
+              </p>
+
+              <button
+                className="fh-cta fh-cta-plain"
+                onClick={() => window.location.reload()}
+              >
+                TRY AGAIN
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- Dashboard UI ---------- */
+
+  return (
+    <div className="fh-root">
+      <div className="fh-screen">
+        <div className="fh-container">
+
+          {/* Top bar */}
+
+    <header className="fh-top">
+  <div className="fh-user-info">
+    <Link
+      to="/profile-setup"
+      className="fh-avatar"
+      aria-label="Edit profile"
+    >
+      {profile?.full_name?.trim()?.charAt(0).toUpperCase() || "W"}
+    </Link>
+
+    <div className="fh-user-details">
+      <span className="fh-greeting">WELCOME BACK</span>
+      <span className="fh-user-name">
+        {profile?.full_name || "Athlete"}
+      </span>
+    </div>
+  </div>
+
+  <div className="fh-streak">
+    <Flame size={20} color="#e8590c" />
+    <span>
+      {streak} DAYS
+      <br />
+      DISCIPLINE
+    </span>
+  </div>
+</header>
+
+          <main className="fh-main">
+
+            {/* 1. Today's workout */}
+
+            <section className="fh-card fh-hero">
+              <h1>{workout.title}</h1>
+
+              <p>
+                {workout.exercises > 0
+                  ? `${workout.minutes} Min / ${workout.exercises} Exercises`
+                  : `${workout.minutes} Min session`}
+              </p>
+
+              <Link
+                to="/workout"
+                className="fh-cta flex items-center justify-center text-center"
+                onClick={() => onNavigate("workout")}
+              >
+                START WORKOUT&nbsp; →
+              </Link>
+            </section>
+
+            <div className="fh-layout-grid">
+
+              {/* 2. Today's progress */}
+
+              <div className="fh-today">
+
+                <h2 className="fh-section-title">
+                  TODAY
+                </h2>
+
+                <div className="fh-grid">
+
+                  {/* Calories */}
+
+                  <section
+                    className={
+                      "fh-card fh-tile fh-orange" +
+                      (isOver ? " is-over" : "")
+                    }
+                  >
+                    <span className="fh-label">
+                      CALORIE GOAL
+                    </span>
+
+                    <div className="fh-row">
+                      <strong className="fh-big">
+                        {consumedCalories.toLocaleString()}
+                      </strong>
+
+                      <Flame
+                        size={34}
+                        color={isOver ? "#ff5d73" : "#ff7a1a"}
+                      />
+                    </div>
+
+                    <div className="fh-unit-row">
+                      <span className="fh-unit">
+                        KCAL TODAY /{" "}
+                        {calorieGoal
+                          ? calorieGoal.toLocaleString()
+                          : "—"}{" "}
+                        GOAL
+                      </span>
+
+                      <span className="fh-percent">
+                        {calorieGoal ? `${percent}%` : "—"}
+                      </span>
+                    </div>
+
+                    <div
+                      className="fh-progress"
+                      role="progressbar"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                      aria-valuenow={percent}
+                      aria-label="Calories eaten today"
+                    >
+                      <div
+                        className="fh-progress-bar"
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+
+                    {calorieGoal ? (
+                      <span className="fh-hint">
+                        {isOver
+                          ? `${Math.abs(remaining).toLocaleString()} kcal over your goal`
+                          : `${remaining.toLocaleString()} kcal left today`}
+                      </span>
+                    ) : (
+                      <Link
+                        to="/profile-setup"
+                        className="fh-hint fh-hint-link"
+                      >
+                        Finish your profile to get a goal →
+                      </Link>
+                    )}
+                  </section>
+
+                  {/* Food AI */}
+
+                  <Link
+                    to="/ai"
+                    className="fh-card fh-tile fh-teal fh-tile-link"
+                    onClick={() => onNavigate("ai")}
+                  >
+                    <div className="fh-ai-head">
+                      <span className="fh-label">
+                        CALORIE / FOOD AI
+                      </span>
+
+                      <span className="fh-chip">
+                        AI
+                      </span>
+                    </div>
+
+                    <div className="fh-ask-content">
+                      <span className="fh-mic">
+                        <Mic />
+                      </span>
+
+                      <span className="fh-wave" aria-hidden="true">
+                        <i />
+                        <i />
+                        <i />
+                        <i />
+                        <i />
+                      </span>
+                    </div>
+
+                    <div className="fh-ask-copy">
+                      <strong className="fh-ask-title">
+                        Ask about any food
+                      </strong>
+
+                      <span className="fh-ask-text">
+                        Enter your calorie intake
+                      </span>
+                    </div>
+                  </Link>
+
+                  {/* Volume Pumped */}
+
+                  <section className="fh-card fh-tile fh-teal">
+                    <span className="fh-label">
+                      VOLUME PUMPED
+                    </span>
+
+                    <div className="fh-value">
+                      <strong className="fh-big">
+                        {volumeDisplay}
+                      </strong>
+
+                      <span className="fh-unit-sm">
+                        KG
+                      </span>
+                    </div>
+
+                    <Sparkline />
+                  </section>
+
+                  {/* Muscle Guide AI */}
+
+                  <section className="fh-card fh-tile fh-teal">
+                    <span className="fh-label">
+                      MUSCLE GUIDE AI
+                    </span>
+
+                    <div className="fh-guide">
+                      <MuscleIcon />
+
+                      <div className="fh-guide-count">
+                        <strong>{guidesViewed}</strong>
+
+                        <span>
+                          GUIDE
+                          <br />
+                          VIEWED
+                        </span>
+                      </div>
+                    </div>
+                  </section>
+
+                </div>
+              </div>
+
+              {/* 3. Body information + motivation */}
+
+              <div className="fh-side">
+
+                {/* Body metrics */}
+
+                <section className="fh-card fh-metrics">
+
+                  <div className="fh-metrics-head">
+                    <h2 className="fh-section-title">
+                      YOUR BODY
+                    </h2>
+
+                    <Link
+                      to="/profile-setup"
+                      className="fh-link"
+                    >
+                      EDIT PROFILE
+                    </Link>
+                  </div>
+
+                  <div className="fh-metrics-grid">
+
+                    <div
+                      className="fh-metric"
+                      data-tone={bmiTone(metrics?.bmiCategory)}
+                    >
+                      <span className="fh-metric-label">
+                        BMI
+                      </span>
+
+                      <strong className="fh-metric-value">
+                        {metrics?.bmi ?? "—"}
+                      </strong>
+
+                      <span className="fh-metric-note">
+                        {metrics?.bmiCategory ?? "Not available"}
+                      </span>
+                    </div>
+
+                    <div className="fh-metric">
+                      <span className="fh-metric-label">
+                        BMR
+                      </span>
+
+                      <strong className="fh-metric-value">
+                        {metrics?.bmr?.toLocaleString() ?? "—"}
+                      </strong>
+
+                      <span className="fh-metric-note">
+                        KCAL AT REST
+                      </span>
+                    </div>
+
+                    <div className="fh-metric">
+                      <span className="fh-metric-label">
+                        TDEE
+                      </span>
+
+                      <strong className="fh-metric-value">
+                        {metrics?.tdee?.toLocaleString() ?? "—"}
+                      </strong>
+
+                      <span className="fh-metric-note">
+                        KCAL WITH ACTIVITY
+                      </span>
+                    </div>
+
+                    <div className="fh-metric">
+                      <span className="fh-metric-label">
+                        BODY FAT
+                      </span>
+
+                      <strong className="fh-metric-value">
+                        {metrics?.bodyFat != null
+                          ? `${metrics.bodyFat}%`
+                          : "—"}
+                      </strong>
+
+                      <span className="fh-metric-note">
+                        {metrics?.bodyFat != null
+                          ? "YOUR BODY FAT"
+                          : "NOT PROVIDED"}
+                      </span>
+                    </div>
+
+                  </div>
+                </section>
+
+                {/* Quote */}
+
+                <section className="fh-card fh-quote">
+                  <span className="fh-quote-title">
+                    QUOTE OF THE DAY
+                  </span>
+
+                  <blockquote>
+                    "{quote.text}"
+                  </blockquote>
+
+                  <cite>
+                    {quote.source}
+                  </cite>
+                </section>
+
+              </div>
             </div>
           </main>
 
-          {/* Bottom nav: 4 icon buttons */}
+          {/* Bottom navigation */}
+
           <nav className="fh-nav" aria-label="Main">
-           <a href="/"> <button
+
+            <Link
+              to="/"
               className="fh-tab"
-              aria-label="Home"
               aria-current={activeTab === "home" ? "page" : undefined}
               onClick={() => onNavigate("home")}
             >
               <Home active={activeTab === "home"} />
-            </button>
-</a>
-            <a href="/workout"> <button
+              <span className="fh-tab-label">
+                Home
+              </span>
+            </Link>
+
+            <Link
+              to="/workout"
               className="fh-tab"
-              aria-label="Workout"
               aria-current={activeTab === "workout" ? "page" : undefined}
               onClick={() => onNavigate("workout")}
             >
               <Dumbbell active={activeTab === "workout"} />
-            </button></a>
+              <span className="fh-tab-label">
+                Workout
+              </span>
+            </Link>
 
             <button
               className="fh-tab"
-              aria-label="Guide"
               aria-current={activeTab === "guide" ? "page" : undefined}
               onClick={() => onNavigate("guide")}
             >
               <Book active={activeTab === "guide"} />
+              <span className="fh-tab-label">
+                Guide
+              </span>
             </button>
 
-            <button
+            <Link
+              to="/auth"
               className="fh-tab"
-              aria-label="Profile"
               aria-current={activeTab === "profile" ? "page" : undefined}
               onClick={() => onNavigate("profile")}
             >
               <User active={activeTab === "profile"} />
-            </button>
+              <span className="fh-tab-label">
+                Profile
+              </span>
+            </Link>
+
           </nav>
 
         </div>

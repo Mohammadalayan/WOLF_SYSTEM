@@ -1,47 +1,23 @@
 /* =====================================================================
-   WorkoutTimer.css  -  "next level" look (same style as FitnessHome)
-   Sections: 1) Settings  2) Page  3) Top bar  4) Exercise card  5) Video
-             6) Timer ring  7) Sets  8) Control buttons  9) Wide screens
+   workout.css  -  WOLF Workout Library page (ONE file for the whole page)
+   Part A = page shell (header, hero card, layout)
+   Part B = the sections (chips, select, timer, inputs, logs ...)
    ===================================================================== */
 
 
-/* ---------------------------------------------------------------------
-   1) SETTINGS - change colors and sizes HERE
-   --------------------------------------------------------------------- */
-.wt-root {
-  --bg: #070e1c;
-  --card: #121d33;
-  --edge: #25344f;
-  --muted: #8fa3bb;
+/* =====================================================================
+   PART A - PAGE SHELL
+   ===================================================================== */
 
-  --cyan: #22e5ff;               /* main accent        */
-  --orange: #ffb02e;             /* STOP / paused      */
-  --green: #19d68c;              /* running            */
-  --purple: #a78bfa;
-
-  --gap: clamp(14px, 2.4vh, 28px);                       /* space between blocks   */
-  --page-x: clamp(14px, 3.5vw, 44px);                    /* left/right page margin */
-
-  --ring-size: min(62vw, clamp(170px, 28vh, 270px));     /* size of the timer ring */
-  --btn: clamp(54px, 13vmin, 80px);                      /* RESET / STOP size      */
-  --btn-main: clamp(76px, 19vmin, 104px);                /* START size             */
-}
-
-
-/* ---------------------------------------------------------------------
-   2) PAGE
-   --------------------------------------------------------------------- */
-
-/* Removes default Vite margins so the screen can fill the window */
+/* Removes the default margins Vite adds around the app */
 html, body, #root {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100%;
   max-width: none;
   display: block;
   text-align: left;
-  background: #070e1c;
+  background: #0a1322;
 }
 
 .wt-root,
@@ -49,39 +25,37 @@ html, body, #root {
 .wt-root * { margin: 0; }
 
 .wt-root {
-  position: fixed;                       /* stuck to the 4 edges of the window */
-  top: 0; right: 0; bottom: 0; left: 0;
-  overflow-x: hidden;
-  overflow-y: auto;                      /* scroll only if the screen is too short */
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;                    /* dvh = correct height on phones */
+  overflow-x: hidden;                    /* fallback for old browsers */
+  overflow-x: clip;                      /* never scroll sideways */
   color: #fff;
   font-family: Inter, "SF Pro Text", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   -webkit-text-size-adjust: 100%;
   background:
     radial-gradient(700px 420px at 0% -80px, rgba(34,229,255,.16), transparent 70%),
     radial-gradient(700px 480px at 100% 100%, rgba(139,124,246,.14), transparent 70%),
-    var(--bg);
+    #0a1322;
 }
 
-/* Phone layout: everything stacked top to bottom */
+/* The page: one column, centered, never wider than 760px (laptop: 1180px) */
 .wt-layout {
-  min-height: 100%;
   width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: var(--gap);
+  gap: 16px;
   padding:
-    calc(clamp(12px, 3vw, 28px) + env(safe-area-inset-top, 0px))
-    calc(var(--page-x) + env(safe-area-inset-right, 0px))
-    calc(clamp(18px, 3vh, 34px) + env(safe-area-inset-bottom, 0px))
-    calc(var(--page-x) + env(safe-area-inset-left, 0px));
+    calc(14px + env(safe-area-inset-top, 0px))
+    calc(clamp(14px, 4vw, 28px) + env(safe-area-inset-right, 0px))
+    calc(32px + env(safe-area-inset-bottom, 0px))
+    calc(clamp(14px, 4vw, 28px) + env(safe-area-inset-left, 0px));
 }
 
-
-/* ---------------------------------------------------------------------
-   3) TOP BAR - back button + status pill
-   --------------------------------------------------------------------- */
+/* ---- Top bar: back + "WOLF WORKOUT" pill ---- */
 .wt-top {
-  grid-area: top;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -92,385 +66,529 @@ html, body, #root {
   place-items: center;
   width: 48px;
   height: 48px;
-  border-radius: 50%;
-  background: var(--card);
-  border: 1px solid var(--edge);
+  font-size: 22px;
+  line-height: 1;
+  color: #9fb0c3;
   text-decoration: none;
+  background: #111e32;
+  border: 1px solid #25344f;
+  border-radius: 50%;
+  transition: transform .18s, border-color .2s, color .2s;
 }
-.wt-back svg { width: 22px; height: 18px; }
 
-/* READY / RUNNING / PAUSED pill (color comes from data-status) */
 .wt-status {
-  --state-color: var(--muted);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
   padding: 8px 14px;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 1.6px;
-  color: var(--state-color);
-  background: color-mix(in srgb, var(--state-color) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--state-color) 45%, transparent);
+  color: #22e5ff;
+  background: rgba(34,229,255,.1);
+  border: 1px solid rgba(34,229,255,.4);
   border-radius: 999px;
 }
-.wt-status[data-status="running"] { --state-color: var(--green); }
-.wt-status[data-status="paused"]  { --state-color: var(--orange); }
 
-.wt-dotlive {                            /* the small dot inside the pill */
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--state-color);
-  box-shadow: 0 0 10px var(--state-color);
-}
-.wt-status[data-status="running"] .wt-dotlive { animation: wt-blink 1.2s ease-in-out infinite; }
-
-
-/* ---------------------------------------------------------------------
-   4) EXERCISE CARD
-   --------------------------------------------------------------------- */
+/* ---- Hero card ---- */
 .wt-card {
-  grid-area: card;
-  padding: clamp(18px, 2.8vh, 28px) 16px;
+  padding: clamp(20px, 3.4vw, 30px) 18px;
   text-align: center;
   background:
-    linear-gradient(135deg, rgba(34,229,255,.14), rgba(139,124,246,.12) 60%, rgba(18,29,51,0)),
-    var(--card);
+    linear-gradient(135deg, rgba(34,229,255,.14), rgba(139,124,246,.12) 60%, rgba(17,30,50,0)),
+    #111e32;
   border: 1px solid rgba(34,229,255,.35);
   border-radius: 22px;
   box-shadow: 0 0 34px rgba(34,229,255,.1);
 }
-
 .wt-card h1 {
-  font-size: clamp(19px, 3.4vw, 34px);
+  font-size: clamp(22px, 5vw, 34px);
   font-weight: 800;
   letter-spacing: .4px;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 .wt-card h1::before {                    /* small label above the title (edit text here) */
-  content: "CURRENT EXERCISE";
+  content: "TRAIN SMART";
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 2.4px;
-  color: var(--cyan);
+  color: #22e5ff;
 }
-
 .wt-card p {
   margin-top: 8px;
-  font-size: clamp(12px, 1.6vw, 17px);
-  color: var(--muted);
+  font-size: clamp(12px, 1.8vw, 15px);
+  color: #9fb0c3;
 }
 
-
-/* ---------------------------------------------------------------------
-   5) GIF - no frame, it floats on the page (the GIF has a transparent background)
-   --------------------------------------------------------------------- */
-.wt-figure {
-  grid-area: figure;
-  position: relative;
-  flex: 1;
-  min-height: clamp(200px, 24vh, 510px);
-}
-
-.wt-figure img {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;               /* whole GIF always visible, never cropped */
-  object-position: center;
-  user-select: none;
-  -webkit-user-drag: none;
-  pointer-events: none;
-  filter: drop-shadow(0 14px 28px rgba(34,229,255,.10));   /* soft cyan light under the figure */
-}
-
-.wt-missing {
-  position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%;
-  display: grid;
-  place-items: center;
-  padding: 16px;
-  font-size: 13px;
-  text-align: center;
-  color: var(--muted);
-}
-
-
-/* ---------------------------------------------------------------------
-   6) TIMER - big digits inside a ring that fills once per minute
-   --------------------------------------------------------------------- */
-.wt-timer {
-  grid-area: timer;
-  position: relative;
-  width: var(--ring-size);
-  height: var(--ring-size);
-  margin: 0 auto;
-  display: grid;
-  place-items: center;
-}
-
-.wt-ring {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);             /* ring starts at the top */
-}
-
-.wt-ring circle { fill: none; stroke-width: 5; }
-.wt-ring-track  { stroke: rgba(255,255,255,.07); }
-.wt-ring-bar {
-  stroke: var(--cyan);
-  stroke-linecap: round;
-  stroke-dasharray: 100;                 /* pathLength is 100, so this = full circle */
-  filter: drop-shadow(0 0 5px rgba(34,229,255,.8));
-}
-
-.wt-time {
-  position: relative;
-  display: flex;
-  align-items: baseline;
-  font-variant-numeric: tabular-nums;    /* all digits same width = no jumping */
-}
-.wt-digits {
-  font-size: calc(var(--ring-size) * .24);
-  font-weight: 800;
-  letter-spacing: 1px;
-  text-shadow: 0 0 24px rgba(34,229,255,.35);
-}
-.wt-cs {                                 /* the small .78 part */
-  font-size: calc(var(--ring-size) * .1);
-  font-weight: 700;
-  color: var(--cyan);
-}
-
-
-/* ---------------------------------------------------------------------
-   7) SETS - tap the numbers to mark sets as done
-   --------------------------------------------------------------------- */
-.wt-sets {
-  grid-area: sets;
+/* ---- Columns: phone = one column, laptop = two ---- */
+.wt-cols,
+.wt-col {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 12px;
+  gap: 16px;
+  min-width: 0;                          /* never wider than the screen */
 }
+.wt-col > .wolf-workout-section { margin: 0; max-width: none; }
+.wt-layout > .wolf-home-link    { max-width: none; margin: 4px 0 0; }
 
-.wt-sets-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  color: var(--muted);
-}
-
-.wt-dots {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px;
-}
-
-.wt-set {
-  width: 46px;
-  height: 46px;
-  font: inherit;
-  font-weight: 800;
-  color: var(--muted);
-  background: var(--card);
-  border: 1px solid var(--edge);
-  border-radius: 50%;
-  cursor: pointer;
-}
-.wt-set.is-done {                        /* finished set */
-  color: #04202a;
-  background: linear-gradient(160deg, #6ff7ff, var(--cyan));
-  border-color: transparent;
-  box-shadow: 0 0 18px rgba(34,229,255,.5);
-}
-
-
-/* ---------------------------------------------------------------------
-   8) CONTROL BUTTONS - RESET | START | STOP
-   --------------------------------------------------------------------- */
-.wt-controls {
-  grid-area: controls;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  gap: clamp(20px, 6vw, 56px);
-  margin-top: auto;                      /* pushes the row to the bottom */
-  padding-top: 6px;
-}
-
-.wt-ctl {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-.wt-ctl span {
-  font-size: clamp(10px, 1.3vw, 13px);
-  font-weight: 700;
-  letter-spacing: 1.4px;
-  color: var(--muted);
-}
-.wt-ctl-main span { color: var(--cyan); }
-
-/* Shared look: round, glassy */
-.wt-btn {
-  display: grid;
-  place-items: center;
-  width: var(--btn);
-  height: var(--btn);
-  font: inherit;
-  color: #fff;
-  background: linear-gradient(160deg, rgba(255,255,255,.14), rgba(255,255,255,.04));
-  border: 0;
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.14), 0 8px 18px rgba(0,0,0,.45);
-  cursor: pointer;
-}
-.wt-btn svg { width: 42%; height: 42%; }
-
-/* START: big cyan, pulsing ring while waiting for you */
-.wt-start {
-  width: var(--btn-main);
-  height: var(--btn-main);
-  color: #041a21;
-  background: linear-gradient(160deg, #6ff7ff 0%, #00d4e6 100%);
-  box-shadow: 0 0 0 6px rgba(0,240,255,.12), 0 0 28px rgba(0,240,255,.55), 0 10px 22px rgba(0,0,0,.5);
-}
-.wt-start svg { width: 40%; height: 40%; margin-left: 4%; }   /* nudge so the triangle looks centered */
-.wt-start:not(:disabled) { animation: wt-pulse 2.4s ease-out infinite; }
-
-/* STOP: orange ring */
-.wt-stop {
-  color: var(--orange);
-  box-shadow: inset 0 0 0 1.5px rgba(245,158,11,.75), 0 0 18px rgba(245,158,11,.3), 0 8px 18px rgba(0,0,0,.45);
-}
-
-.wt-reset { color: #cfd6e3; }
-
-/* Disabled (START while running / STOP while stopped) */
-.wt-btn:disabled {
-  opacity: .4;
-  cursor: default;
-  animation: none;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.1);
-}
-.wt-start:disabled { background: linear-gradient(160deg, #2a8f99, #1a6a73); color: #0a2a30; }
-
-
-/* ---------------------------------------------------------------------
-   9) HOVER, PRESS, KEYBOARD FOCUS (all buttons and links)
-   Hover is inside (hover: hover) so phones don't get a "stuck" hover.
-   --------------------------------------------------------------------- */
-.wt-back, .wt-btn, .wt-set {
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  transition: transform .18s, filter .18s, box-shadow .2s, background-color .2s, border-color .2s, color .2s;
-}
-
-.wt-back:focus-visible,
-.wt-btn:focus-visible,
-.wt-set:focus-visible {
-  outline: 2px solid var(--cyan);
-  outline-offset: 4px;
+@media (min-width: 1000px) {
+  .wt-layout { max-width: 1180px; gap: 22px; }
+  .wt-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);   /* left wider: train | results */
+    gap: 24px;
+    align-items: start;
+  }
+  .wt-col { gap: 20px; }
 }
 
 @media (hover: hover) {
-  .wt-back:hover { border-color: var(--cyan); transform: translateX(-3px); }
+  .wt-back:hover { color: #22e5ff; border-color: #22e5ff; transform: translateX(-3px); }
+}
+.wt-back:focus-visible { outline: 2px solid #22e5ff; outline-offset: 3px; }
+.wt-back:active { transform: scale(.92); }
 
-  .wt-btn:not(:disabled):hover { transform: translateY(-3px); filter: brightness(1.15); }
-  .wt-start:not(:disabled):hover {
-    box-shadow: 0 0 0 7px rgba(0,240,255,.18), 0 0 40px rgba(0,240,255,.75), 0 14px 28px rgba(0,0,0,.5);
-  }
-  .wt-stop:not(:disabled):hover {
-    box-shadow: inset 0 0 0 1.5px var(--orange), 0 0 26px rgba(245,158,11,.5), 0 12px 24px rgba(0,0,0,.45);
-  }
 
-  .wt-set:not(.is-done):hover { color: #fff; border-color: var(--cyan); transform: translateY(-2px); }
-  .wt-set.is-done:hover       { transform: translateY(-2px); filter: brightness(1.1); }
+/* =====================================================================
+   PART B - SECTIONS
+   ===================================================================== */
+/* ---------------------------------------------------------------------
+   1) SETTINGS - change colors and sizes HERE
+   --------------------------------------------------------------------- */
+:root {
+  --wolf-bg: #0a1322;
+  --wolf-card: #111e32;
+  --wolf-field: #0b1628;          /* inputs and small boxes        */
+  --wolf-edge: #25344f;           /* quiet borders                 */
+  --wolf-text: #f5f8ff;
+  --wolf-muted: #9fb0c3;
+  --wolf-cyan: #22e5ff;
+  --wolf-orange: #ffad42;
+  --wolf-radius: 20px;
 }
 
-.wt-back:active,
-.wt-btn:not(:disabled):active,
-.wt-set:active { transform: scale(.92); }
+/* every wolf element: padding never makes things wider than the screen */
+[class^="wolf-"],
+[class*=" wolf-"] { box-sizing: border-box; }
 
 
 /* ---------------------------------------------------------------------
-   10) ANIMATIONS
+   2) CARD - each section of the page
    --------------------------------------------------------------------- */
-@keyframes wt-blink {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: .3; }
-}
-@keyframes wt-pulse {                    /* soft ring around START */
-  0%   { box-shadow: 0 0 0 6px rgba(0,240,255,.12), 0 0 28px rgba(0,240,255,.55), 0 0 0 6px rgba(0,240,255,.35); }
-  70%  { box-shadow: 0 0 0 6px rgba(0,240,255,.12), 0 0 28px rgba(0,240,255,.55), 0 0 0 22px rgba(0,240,255,0); }
-  100% { box-shadow: 0 0 0 6px rgba(0,240,255,.12), 0 0 28px rgba(0,240,255,.55), 0 0 0 6px rgba(0,240,255,0); }
-}
-@keyframes wt-rise {                     /* blocks slide up when the page opens */
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: none; }
+.wolf-workout-section {
+  width: 100%;
+  max-width: 760px;
+  margin: 16px auto;
+  padding: clamp(16px, 3vw, 24px);
+  color: var(--wolf-text);
+  background:
+    linear-gradient(160deg, rgba(255,255,255,.05), rgba(255,255,255,0) 55%),
+    var(--wolf-card);
+  border: 1px solid var(--wolf-edge);
+  border-radius: var(--wolf-radius);
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .wt-card, .wt-figure, .wt-timer, .wt-sets, .wt-controls {
-    animation: wt-rise .6s cubic-bezier(.2,.8,.2,1) both;
-  }
-  .wt-figure   { animation-delay: .08s; }
-  .wt-timer    { animation-delay: .14s; }
-  .wt-sets     { animation-delay: .2s; }
-  .wt-controls { animation-delay: .26s; }
+/* card title: small, spaced, with a cyan bar before it */
+.wolf-workout-section h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--wolf-cyan);
 }
+.wolf-workout-section h2::before {
+  content: "";
+  width: 4px;
+  height: 14px;
+  background: var(--wolf-cyan);
+  border-radius: 4px;
+  box-shadow: 0 0 10px var(--wolf-cyan);
+}
+
+
+/* ---------------------------------------------------------------------
+   3) MUSCLE CHIPS - pick a muscle group
+   --------------------------------------------------------------------- */
+.wolf-muscle-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.wolf-chip {
+  min-height: 44px;                      /* easy to tap */
+  padding: 0 18px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #b8c7dc;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--wolf-edge);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.wolf-chip.active {
+  color: #04202a;
+  font-weight: 800;
+  background: linear-gradient(160deg, #6ff7ff, var(--wolf-cyan));
+  border-color: transparent;
+  box-shadow: 0 0 18px rgba(34,229,255,.45);
+}
+
+
+/* ---------------------------------------------------------------------
+   4) SELECT + INPUTS
+   --------------------------------------------------------------------- */
+.wolf-select,
+.wolf-input-grid input {
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 16px;                       /* 16px stops iPhone auto-zoom */
+  color: #fff;
+  background-color: var(--wolf-field);
+  border: 1px solid var(--wolf-edge);
+  border-radius: 14px;
+  outline: none;
+}
+
+/* dropdown arrow */
+.wolf-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 44px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9' fill='none' stroke='%2322e5ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+}
+
+/* weight / reps: big centered numbers, no tiny spinner arrows */
+.wolf-input-grid input {
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.wolf-input-grid input::-webkit-outer-spin-button,
+.wolf-input-grid input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.wolf-input-grid input::placeholder { color: #4d6079; font-weight: 500; }
+
+.wolf-select:focus,
+.wolf-input-grid input:focus {
+  border-color: var(--wolf-cyan);
+  box-shadow: 0 0 0 3px rgba(34,229,255,.18);
+}
+
+.wolf-input-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.wolf-input-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--wolf-muted);
+}
+
+
+/* ---------------------------------------------------------------------
+   5) EXERCISE INFO - name big, details as small tags
+   --------------------------------------------------------------------- */
+.wolf-exercise-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--wolf-muted);
+}
+
+.wolf-exercise-info strong {
+  width: 100%;
+  margin-bottom: 4px;
+  font-size: clamp(18px, 4.6vw, 22px);
+  font-weight: 800;
+  line-height: 1.2;
+  color: #fff;
+}
+
+.wolf-exercise-info span {
+  padding: 5px 12px;
+  background: rgba(255,255,255,.06);
+  border-radius: 999px;
+}
+
+
+/* ---------------------------------------------------------------------
+   6) TIMER + ACTION BUTTONS
+   --------------------------------------------------------------------- */
+.wolf-timer-display {
+  margin-bottom: 16px;
+  padding: clamp(14px, 3vw, 22px);
+  font-size: clamp(40px, 11vw, 64px);
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  letter-spacing: 1px;
+  font-variant-numeric: tabular-nums;    /* digits keep the same width */
+  color: var(--wolf-cyan);
+  text-shadow: 0 0 24px rgba(34,229,255,.4);
+  background: rgba(8,15,29,.6);
+  border: 1px solid rgba(34,229,255,.25);
+  border-radius: 18px;
+}
+
+.wolf-action-row {
+  display: flex;
+  gap: 10px;
+}
+
+.wolf-action-row button {
+  flex: 1;
+  min-height: 52px;
+  padding: 0 12px;
+  font: inherit;
+  font-weight: 800;
+  color: #fff;
+  background: rgba(255,255,255,.07);
+  border: 1px solid var(--wolf-edge);
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+/* first button = main action (usually START) */
+.wolf-action-row button:first-child {
+  color: #04202a;
+  background: linear-gradient(160deg, #6ff7ff, var(--wolf-cyan));
+  border-color: transparent;
+  box-shadow: 0 0 18px rgba(34,229,255,.35);
+}
+
+.wolf-action-row button:disabled {
+  opacity: .4;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+
+/* ---------------------------------------------------------------------
+   7) SAVE SET + MESSAGES
+   --------------------------------------------------------------------- */
+.wolf-save-set {
+  width: 100%;
+  min-height: 58px;
+  margin-top: 18px;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: .8px;
+  color: #04202a;
+  background: linear-gradient(135deg, #6ff7ff, var(--wolf-cyan) 55%, #12bfe0);
+  border: 0;
+  border-radius: 16px;
+  box-shadow: 0 0 0 5px rgba(34,229,255,.1), 0 10px 28px rgba(34,229,255,.3);
+  cursor: pointer;
+}
+.wolf-save-set:disabled { opacity: .45; box-shadow: none; cursor: not-allowed; }
+
+/* feedback line ("Set saved"): a small banner, hidden when empty */
+.wolf-message {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--wolf-cyan);
+  background: rgba(34,229,255,.08);
+  border-left: 3px solid var(--wolf-cyan);
+  border-radius: 10px;
+}
+.wolf-message:empty { display: none; }
+
+/* rest countdown */
+.wolf-rest {
+  margin: 18px auto 0;
+  width: fit-content;
+  padding: 8px 18px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-align: center;
+  color: var(--wolf-orange);
+  background: rgba(255,173,66,.1);
+  border: 1px solid rgba(255,173,66,.4);
+  border-radius: 999px;
+}
+
+.wolf-set-count {
+  margin-top: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--wolf-muted);
+}
+
+
+/* ---------------------------------------------------------------------
+   8) TODAY VOLUME + LOG
+   --------------------------------------------------------------------- */
+.wolf-today-volume {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 12px;
+  text-align: center;
+}
+.wolf-today-volume span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--wolf-muted);
+}
+.wolf-today-volume strong {
+  font-size: clamp(32px, 9vw, 44px);
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--wolf-cyan);
+  text-shadow: 0 0 20px rgba(34,229,255,.35);
+}
+
+.wolf-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wolf-log-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 0;                         /* the list already adds the gap */
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--wolf-muted);
+  background: var(--wolf-field);
+  border-left: 3px solid var(--wolf-cyan);
+  border-radius: 12px;
+  overflow-wrap: anywhere;               /* long names never push the page wider */
+}
+.wolf-log-item strong {
+  font-size: 15px;
+  color: #fff;
+}
+
+
+/* ---------------------------------------------------------------------
+   9) HOME LINK - back to the dashboard
+   --------------------------------------------------------------------- */
+.wolf-home-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 760px;
+  min-height: 56px;
+  margin: 8px auto 24px;
+  padding: 0 18px;
+  font-weight: 800;
+  letter-spacing: .8px;
+  text-decoration: none;
+  color: var(--wolf-cyan);
+  border: 1px solid rgba(34,229,255,.35);
+  border-radius: 16px;
+}
+
+
+/* ---------------------------------------------------------------------
+   10) HOVER, PRESS, KEYBOARD FOCUS
+   Hover is inside (hover: hover): phones don't get a "stuck" hover.
+   --------------------------------------------------------------------- */
+.wolf-chip,
+.wolf-action-row button,
+.wolf-save-set,
+.wolf-home-link,
+.wolf-log-item {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform .15s, filter .15s, background-color .2s, border-color .2s, box-shadow .2s, color .2s;
+}
+
+.wolf-chip:focus-visible,
+.wolf-action-row button:focus-visible,
+.wolf-save-set:focus-visible,
+.wolf-home-link:focus-visible {
+  outline: 2px solid var(--wolf-cyan);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .wolf-chip:not(.active):hover {
+    color: #fff;
+    border-color: var(--wolf-cyan);
+    background: rgba(34,229,255,.08);
+  }
+  .wolf-action-row button:not(:disabled):hover { transform: translateY(-2px); filter: brightness(1.12); }
+  .wolf-save-set:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 6px rgba(34,229,255,.16), 0 14px 34px rgba(34,229,255,.45);
+  }
+  .wolf-home-link:hover { background: rgba(34,229,255,.1); border-color: var(--wolf-cyan); }
+  .wolf-log-item:hover  { background: #0f1d33; }
+}
+
+.wolf-chip:active,
+.wolf-action-row button:not(:disabled):active,
+.wolf-save-set:not(:disabled):active,
+.wolf-home-link:active { transform: scale(.97); }
 
 @media (prefers-reduced-motion: reduce) {
-  .wt-dotlive, .wt-start { animation: none !important; }
-  .wt-back, .wt-btn, .wt-set { transition: none; }
+  .wolf-chip, .wolf-action-row button, .wolf-save-set, .wolf-home-link, .wolf-log-item { transition: none; }
 }
 
 
 /* ---------------------------------------------------------------------
-   11) WIDE SCREENS and PHONES IN LANDSCAPE
-   Video on the left, everything else stacked on the right:
-        [ top bar                ]
-        [ video   |  card        ]
-        [ video   |  timer       ]
-        [ video   |  sets        ]
-        [ video   |  buttons     ]
+   11) SMALL PHONES
    --------------------------------------------------------------------- */
-@media (min-width: 900px), (orientation: landscape) and (max-height: 520px) {
-  .wt-root { --ring-size: clamp(130px, 30vh, 280px); }
-
-  .wt-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-    grid-template-rows: auto auto auto auto 1fr;
-    grid-template-areas:
-      "top    top"
-      "figure card"
-      "figure timer"
-      "figure sets"
-      "figure controls";
-    column-gap: clamp(16px, 3vw, 48px);
-    height: 100%;
-  }
-
-  .wt-figure   { min-height: 0; }
-  .wt-controls { margin-top: 0; align-self: center; }
+@media (max-width: 380px) {
+  .wolf-workout-section { padding: 14px; border-radius: 18px; }
+  .wolf-chip            { padding: 0 14px; font-size: 13px; }
+  .wolf-input-grid      { gap: 10px; }
+  .wolf-action-row      { flex-wrap: wrap; }
+  .wolf-action-row button { min-width: 90px; }
 }
 
 
 /* ---------------------------------------------------------------------
-   12) SMALL PHONES (under 400px)
+   12) EMPTY MESSAGES ("No sets logged today...")
    --------------------------------------------------------------------- */
-@media (max-width: 400px) {
-  .wt-back { width: 44px; height: 44px; }
-  .wt-set  { width: 42px; height: 42px; }
-  .wt-dots { gap: 10px; }
+.wolf-empty {
+  padding: 22px 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--wolf-muted);
+  border: 1px dashed var(--wolf-edge);
+  border-radius: 14px;
 }

@@ -1,156 +1,344 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  saveWorkoutSet,
+  getTodayWorkoutSets,
+  getWorkoutHistory,
+} from "./Wolfstorage.jsx";
 import "./workout.css";
 
-/* ---------- Icons ---------- */
-const BackArrow = () => (
-  <svg width="38" height="30" viewBox="0 0 38 30" fill="none" stroke="#9fb0c3" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M36 15H4M15 4L4 15l11 11" />
-  </svg>
-);
-const Play = () => (
-  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z" /></svg>
-);
-const Pause = () => (
-  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1.5" /><rect x="14" y="4" width="5" height="16" rx="1.5" /></svg>
-);
-const Reset = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5" /></svg>
-);
+const exercises = [
+  { name: "Bench Press", muscle: "Chest", target: "Chest", rest: 90 },
+  { name: "Incline Dumbbell Press", muscle: "Chest", target: "Upper Chest", rest: 90 },
+  { name: "Chest Fly", muscle: "Chest", target: "Chest", rest: 60 },
+  { name: "Push Ups", muscle: "Chest", target: "Chest", rest: 60 },
 
-/* ---------- Time format: MM:SS:CC ---------- */
-const pad = (n) => String(n).padStart(2, "0");
-const format = (ms) => {
-  const cs = Math.floor(ms / 10) % 100;
-  const s = Math.floor(ms / 1000) % 60;
-  const m = Math.floor(ms / 60000);
-  return `${pad(m)}:${pad(s)}:${pad(cs)}`;
-};
+  { name: "Lat Pulldown", muscle: "Back", target: "Lats", rest: 90 },
+  { name: "Seated Cable Row", muscle: "Back", target: "Back", rest: 90 },
+  { name: "Barbell Row", muscle: "Back", target: "Back", rest: 120 },
+  { name: "Deadlift", muscle: "Back", target: "Back", rest: 150 },
 
-export default function WorkoutTimer({
-  exercise = "INCLINE DUMBBELL PRESS",
-  target = "Upper Chest",
-  rest = 90,
-  totalSets = 4,                 // number of set buttons under the timer
-  gif = "/dumbbell_press.gif",   // put the GIF in /public
-  onBack = () => {},
-}) {
+  { name: "Shoulder Press", muscle: "Shoulders", target: "Shoulders", rest: 90 },
+  { name: "Lateral Raises", muscle: "Shoulders", target: "Side Delts", rest: 60 },
+  { name: "Rear Delt Fly", muscle: "Shoulders", target: "Rear Delts", rest: 60 },
+
+  { name: "Biceps Curl", muscle: "Arms", target: "Biceps", rest: 60 },
+  { name: "Hammer Curl", muscle: "Arms", target: "Biceps", rest: 60 },
+  { name: "Triceps Pushdown", muscle: "Arms", target: "Triceps", rest: 60 },
+  { name: "Overhead Triceps Extension", muscle: "Arms", target: "Triceps", rest: 60 },
+
+  { name: "Squat", muscle: "Legs", target: "Quadriceps", rest: 120 },
+  { name: "Leg Press", muscle: "Legs", target: "Legs", rest: 90 },
+  { name: "Leg Curl", muscle: "Legs", target: "Hamstrings", rest: 60 },
+  { name: "Calf Raises", muscle: "Legs", target: "Calves", rest: 60 },
+
+  { name: "Crunches", muscle: "Abs", target: "Abs", rest: 45 },
+  { name: "Plank", muscle: "Abs", target: "Core", rest: 45 },
+];
+
+const muscles = [
+  "All",
+  "Chest",
+  "Back",
+  "Shoulders",
+  "Arms",
+  "Legs",
+  "Abs",
+];
+
+export default function WorkoutTimer() {
+  const [muscle, setMuscle] = useState("All");
+  const [exerciseName, setExerciseName] = useState(exercises[0].name);
+  const [weight, setWeight] = useState("20");
+  const [reps, setReps] = useState("10");
+  const [sets, setSets] = useState(getTodayWorkoutSets());
+  const [history, setHistory] = useState(getWorkoutHistory());
+
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
-  const [gifFailed, setGifFailed] = useState(false);
-  const [doneSets, setDoneSets] = useState(0);   // how many sets are finished
-  const base = useRef(0);
-  const t0 = useRef(0);
+  const [restTime, setRestTime] = useState(0);
+  const [message, setMessage] = useState("");
 
+  const selectedExercise =
+    exercises.find((item) => item.name === exerciseName) || exercises[0];
+
+  const filteredExercises =
+    muscle === "All"
+      ? exercises
+      : exercises.filter((item) => item.muscle === muscle);
+
+  // Stopwatch
   useEffect(() => {
     if (!running) return;
-    t0.current = performance.now();
-    const id = setInterval(() => {
-      setElapsed(base.current + (performance.now() - t0.current));
-    }, 10);
-    return () => clearInterval(id);
+
+    const interval = setInterval(() => {
+      setElapsed((value) => value + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, [running]);
 
-  const start = () => {
-    if (running) return;
-    base.current = elapsed;
-    setRunning(true);
-  };
-  const stop = () => setRunning(false);
-  const reset = () => {
-    setRunning(false);
-    base.current = 0;
-    setElapsed(0);
+  // Rest countdown
+  useEffect(() => {
+    if (restTime <= 0) return;
+
+    const interval = setInterval(() => {
+      setRestTime((value) => Math.max(0, value - 1));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [restTime]);
+
+  const formatTime = (seconds) => {
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+
+    return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
   };
 
-  // Tap a set number: marks sets 1..n as done. Tap the last done set again to undo it.
-  const toggleSet = (i) => setDoneSets(i + 1 === doneSets ? i : i + 1);
+  const changeMuscle = (value) => {
+    setMuscle(value);
 
-  // ---- values used only for the design ----
-  const text = format(elapsed);                              // "MM:SS:CC"
-  const status = running ? "running" : elapsed > 0 ? "paused" : "ready";
-  const progress = (elapsed % 60000) / 60000;                // ring fills once per minute
+    const nextExercise = exercises.find(
+      (item) => value === "All" || item.muscle === value
+    );
+
+    if (nextExercise) {
+      setExerciseName(nextExercise.name);
+      setRestTime(0);
+    }
+  };
+
+  const addSet = () => {
+    const numericWeight = Number(weight);
+    const numericReps = Number(reps);
+
+    if (!Number.isFinite(numericWeight) || numericWeight < 0) {
+      setMessage("Enter a valid weight.");
+      return;
+    }
+
+    if (!Number.isInteger(numericReps) || numericReps < 1) {
+      setMessage("Enter a valid number of reps.");
+      return;
+    }
+
+    const savedSet = saveWorkoutSet({
+      exercise: selectedExercise.name,
+      muscle: selectedExercise.muscle,
+      weight: numericWeight,
+      reps: numericReps,
+    });
+
+    setSets((previous) => [...previous, savedSet]);
+    setHistory(getWorkoutHistory());
+    setRestTime(selectedExercise.rest);
+    setMessage("Set saved successfully!");
+  };
+
+  const todayVolume = sets.reduce(
+    (total, set) => total + (Number(set.volume) || 0),
+    0
+  );
+
+  const exerciseSets = sets.filter(
+    (set) => set.exercise === exerciseName
+  );
 
   return (
     <div className="wt-root">
       <div className="wt-layout">
 
-        {/* Top bar: back + status */}
         <header className="wt-top">
-          <a href="/" className="wt-back" onClick={onBack} aria-label="Back">
-            <BackArrow />
-          </a>
-          <span className="wt-status" data-status={status}>
-            <i className="wt-dotlive" aria-hidden="true" />
-            {status.toUpperCase()}
+          <Link to="/" className="wt-back" aria-label="Back">
+            ←
+          </Link>
+          <span className="wt-status">
+            WOLF WORKOUT
           </span>
         </header>
 
-        {/* Exercise card */}
         <section className="wt-card">
-          <h1>{exercise}</h1>
-          <p>Target: {target} | Rest: {rest}s</p>
+          <h1>WORKOUT LIBRARY</h1>
+          <p>Choose your muscle group and start training</p>
         </section>
 
-        {/* GIF */}
-        <div className="wt-figure">
-          {gifFailed ? (
-            <p className="wt-missing">GIF not found: {gif}</p>
-          ) : (
-            <img src={gif} alt={exercise} draggable="false" onError={() => setGifFailed(true)} />
-          )}
-        </div>
+        {/* Two columns on laptops: left = train, right = results */}
+        <div className="wt-cols">
 
-        {/* Big timer with progress ring */}
-        <div className="wt-timer">
-          <svg className="wt-ring" viewBox="0 0 120 120" aria-hidden="true">
-            <circle className="wt-ring-track" cx="60" cy="60" r="54" />
-            <circle
-              className="wt-ring-bar"
-              cx="60" cy="60" r="54"
-              pathLength="100"
-              style={{ strokeDashoffset: 100 - progress * 100 }}
-            />
-          </svg>
-          <time className="wt-time">
-            <span className="wt-digits">{text.slice(0, 5)}</span>
-            <span className="wt-cs">.{text.slice(6)}</span>
-          </time>
-        </div>
+          <div className="wt-col">
+            <section className="wolf-workout-section">
+              <h2>MUSCLE GROUP</h2>
 
-        {/* Sets */}
-        <div className="wt-sets">
-          <span className="wt-sets-label">SETS {doneSets}/{totalSets}</span>
-          <div className="wt-dots">
-            {Array.from({ length: totalSets }, (_, i) => (
-              <button
-                key={i}
-                className={"wt-set" + (i < doneSets ? " is-done" : "")}
-                onClick={() => toggleSet(i)}
-                aria-label={`Set ${i + 1}`}
-                aria-pressed={i < doneSets}
+              <div className="wolf-muscle-list">
+                {muscles.map((item) => (
+                  <button
+                    key={item}
+                    className={muscle === item ? "wolf-chip active" : "wolf-chip"}
+                    aria-pressed={muscle === item}
+                    onClick={() => changeMuscle(item)}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section className="wolf-workout-section">
+              <h2>SELECT EXERCISE</h2>
+
+              <select
+                className="wolf-select"
+                aria-label="Exercise"
+                value={exerciseName}
+                onChange={(event) => {
+                  setExerciseName(event.target.value);
+                  setRestTime(0);
+                  setMessage("");
+                }}
               >
-                {i + 1}
+                {filteredExercises.map((item) => (
+                  <option key={item.name} value={item.name}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+
+              <div className="wolf-exercise-info">
+                <strong>{selectedExercise.name}</strong>
+                <span>{selectedExercise.target}</span>
+                <span>Rest: {selectedExercise.rest}s</span>
+              </div>
+            </section>
+
+            <section className="wolf-workout-section">
+              <h2>WORKOUT TIMER</h2>
+
+              <div className="wolf-timer-display">
+                {formatTime(elapsed)}
+              </div>
+
+              <div className="wolf-action-row">
+                <button onClick={() => setRunning(true)} disabled={running}>
+                  START
+                </button>
+
+                <button onClick={() => setRunning(false)} disabled={!running}>
+                  PAUSE
+                </button>
+
+                <button
+                  onClick={() => {
+                    setRunning(false);
+                    setElapsed(0);
+                  }}
+                >
+                  RESET
+                </button>
+              </div>
+            </section>
+
+            <section className="wolf-workout-section">
+              <h2>LOG YOUR SET</h2>
+
+              <div className="wolf-input-grid">
+                <label>
+                  Weight (KG)
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.5"
+                    value={weight}
+                    onChange={(event) => setWeight(event.target.value)}
+                  />
+                </label>
+
+                <label>
+                  Reps
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="1"
+                    step="1"
+                    value={reps}
+                    onChange={(event) => setReps(event.target.value)}
+                  />
+                </label>
+              </div>
+
+              <button className="wolf-save-set" onClick={addSet}>
+                COMPLETE SET + SAVE
               </button>
-            ))}
+
+              {message && (
+                <p className="wolf-message" role="status">
+                  {message}
+                </p>
+              )}
+
+              <p className="wolf-rest">
+                {restTime > 0
+                  ? `REST: ${formatTime(restTime)}`
+                  : "READY FOR NEXT SET"}
+              </p>
+
+              <p className="wolf-set-count">
+                Sets logged for this exercise: {exerciseSets.length}
+              </p>
+            </section>
+          </div>
+
+          <div className="wt-col">
+            <section className="wolf-workout-section">
+              <h2>TODAY'S WORKOUT</h2>
+
+              <div className="wolf-today-volume">
+                <span>TOTAL VOLUME</span>
+                <strong>{todayVolume.toLocaleString()} KG</strong>
+                <span>{sets.length} sets completed</span>
+              </div>
+
+              {sets.length === 0 ? (
+                <p className="wolf-empty">No sets logged today. Start your workout!</p>
+              ) : (
+                <div className="wolf-log-list">
+                  {[...sets].reverse().map((set) => (
+                    <div className="wolf-log-item" key={set.id}>
+                      <strong>{set.exercise}</strong>
+                      <span>
+                        {set.weight} KG × {set.reps} reps
+                      </span>
+                      <span>{set.volume.toLocaleString()} KG volume</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="wolf-workout-section">
+              <h2>RECENT HISTORY</h2>
+
+              {history.length === 0 ? (
+                <p className="wolf-empty">Your workout history will appear here.</p>
+              ) : (
+                <div className="wolf-log-list">
+                  {history.slice(0, 8).map((set) => (
+                    <div className="wolf-log-item" key={set.id}>
+                      <strong>{set.exercise}</strong>
+                      <span>{set.date}</span>
+                      <span>{set.weight} KG × {set.reps}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="wt-controls">
-          <div className="wt-ctl">
-            <button className="wt-btn wt-reset" onClick={reset} aria-label="Reset"><Reset /></button>
-            <span>RESET</span>
-          </div>
-          <div className="wt-ctl wt-ctl-main">
-            <button className="wt-btn wt-start" onClick={start} disabled={running} aria-label="Start"><Play /></button>
-            <span>START</span>
-          </div>
-          <div className="wt-ctl">
-            <button className="wt-btn wt-stop" onClick={stop} disabled={!running} aria-label="Stop"><Pause /></button>
-            <span>STOP</span>
-          </div>
-        </div>
-
+        <Link to="/" className="wolf-home-link">
+          BACK TO DASHBOARD
+        </Link>
       </div>
     </div>
   );
