@@ -43,12 +43,12 @@ const Book = ({ active }) => (
 );
 
 const User = ({ active }) => (
-   <a href="./Auth.jsx"><svg width="28" height="28" viewBox="0 0 24 24" fill={active ? "#22e5ff" : "#9fb0c3"} aria-hidden="true">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill={active ? "#22e5ff" : "#9fb0c3"} aria-hidden="true">
     <circle cx="12" cy="12" r="11" />
     <circle cx="12" cy="9.5" r="3.6" fill="#0d1626" />
    
     <path d="M5.5 19c1.3-3 3.8-4.4 6.5-4.4s5.2 1.4 6.5 4.4A10.8 10.8 0 0 1 12 23a10.8 10.8 0 0 1-6.5-4z" fill="#0d1626" />
-  </svg></a>
+  </svg>
 );
 
 const MuscleIcon = () => (
@@ -105,6 +105,24 @@ export default function FitnessHome({
   activeTab = "home",
 }) {
   const navigate = useNavigate();
+
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  async function handleLogout() {
+    if (loggingOut) return;
+
+    setLoggingOut(true);
+
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      navigate("/auth", { replace: true });
+    } catch (error) {
+      console.error("LOGOUT ERROR:", error);
+      alert(error.message || "Could not log out. Please try again.");
+      setLoggingOut(false);
+    }
+  }
 
   const [profile, setProfile] = useState(null);
   const [metrics, setMetrics] = useState(null);
@@ -273,32 +291,45 @@ export default function FitnessHome({
           {/* Top bar */}
 
     <header className="fh-top">
-  <div className="fh-user-info">
-    <Link
-      to="/profile-setup"
-      className="fh-avatar"
-      aria-label="Edit profile"
-    >
-      {profile?.full_name?.trim()?.charAt(0).toUpperCase() || "W"}
-    </Link>
+              <div className="fh-user-info">
+                <Link
+                  to="/profile-setup"
+                  className="fh-avatar"
+                  aria-label="Edit profile"
+                >
+                  {profile?.full_name?.trim()?.charAt(0).toUpperCase() || "W"}
+                </Link>
 
-    <div className="fh-user-details">
-      <span className="fh-greeting">WELCOME BACK</span>
-      <span className="fh-user-name">
-        {profile?.full_name || "Athlete"}
-      </span>
-    </div>
-  </div>
+                <div className="fh-user-details">
+                  <span className="fh-greeting">WELCOME BACK</span>
+                  <span className="fh-user-name">
+                    {profile?.full_name || "Athlete"}
+                  </span>
+                </div>
+              </div>
 
-  <div className="fh-streak">
-    <Flame size={20} color="#e8590c" />
-    <span>
-      {streak} DAYS
-      <br />
-      DISCIPLINE
-    </span>
-  </div>
-</header>
+              <div className="fh-header-actions">
+                <div className="fh-streak">
+                  <Flame size={20} color="#e8590c" />
+                  <span>
+                    {streak} DAYS
+                    <br />
+                    DISCIPLINE
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  className="fh-logout"
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  aria-label="Log out"
+                >
+                  {loggingOut ? "LOGGING OUT..." : "LOG OUT"}
+                  <span aria-hidden="true">↗</span>
+                </button>
+              </div>
+            </header>
 
           <main className="fh-main">
 
@@ -637,7 +668,7 @@ export default function FitnessHome({
             </button>
 
             <Link
-              to="/auth"
+              to="/profile-setup"
               className="fh-tab"
               aria-current={activeTab === "profile" ? "page" : undefined}
               onClick={() => onNavigate("profile")}

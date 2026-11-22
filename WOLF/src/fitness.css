@@ -1085,3 +1085,92 @@ button.fh-cta { font-family: inherit; }
   .fh-ask-content       { gap: 10px; }
   .fh-ask-title         { font-size: 14px; }
 }
+
+/* =====================================================================
+   17) HEADER ACTIONS + LOGOUT
+   ===================================================================== */
+
+.fh-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.fh-logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 93, 115, .35);
+  border-radius: 10px;
+  color: #ff7182 !important;
+  background: rgba(255, 93, 115, .08) !important;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  transition: background .2s, border-color .2s, transform .15s;
+}
+
+.fh-logout span {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.fh-logout:hover:not(:disabled) {
+  background: rgba(255, 93, 115, .16) !important;
+  border-color: rgba(255, 93, 115, .75);
+}
+
+.fh-logout:active:not(:disabled) {
+  transform: scale(.96);
+}
+
+.fh-logout:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+@media (max-width: 480px) {
+  .fh-header-actions {
+    gap: 7px;
+  }
+
+  .fh-streak {
+    gap: 5px;
+    padding: 7px 8px;
+  }
+
+  .fh-logout {
+    min-height: 36px;
+    gap: 5px;
+    padding: 8px;
+    font-size: 9px;
+    letter-spacing: .5px;
+  }
+}
+
+@media (max-width: 360px) {
+  .fh-header-actions {
+    gap: 5px;
+  }
+
+  .fh-streak {
+    padding: 6px;
+    font-size: 7px;
+  }
+
+  .fh-streak svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .fh-logout {
+    padding: 7px 6px;
+    font-size: 8px;
+  }
+}
