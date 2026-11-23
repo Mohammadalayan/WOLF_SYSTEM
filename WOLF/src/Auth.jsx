@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "./supabase.js";
 import "./auth.css";
@@ -59,6 +59,12 @@ const BodyIcon = () => (
   </svg>
 );
 
+const ArrowRight = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </svg>
+);
+
 /* ---------- Design helper: password strength (display only) ---------- */
 function getStrength(pw) {
   if (!pw) return 0;
@@ -79,6 +85,28 @@ export default function Auth() {
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);          // design: red or green message
   const [showPassword, setShowPassword] = useState(false); // design: eye button
+  const [loggedIn, setLoggedIn] = useState(false);         // shows the corner "Dashboard" button
+
+  // Is the user already logged in? (then the corner button is shown)
+  useEffect(() => {
+    let alive = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (alive && data?.session) setLoggedIn(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Go to the dashboard. If the router did not leave /auth, reload "/" as a safety net.
+  const goToDashboard = () => {
+    navigate("/", { replace: true });
+    setTimeout(() => {
+      if (window.location.pathname.startsWith("/auth")) {
+        window.location.replace("/");
+      }
+    }, 700);
+  };
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -95,11 +123,12 @@ export default function Auth() {
 
         if (error) throw error;
 
-        setMessage("Login successful!");
+        setLoggedIn(true);
+        setMessage("Login successful! Taking you to your dashboard...");
 
-        // After login: go to the dashboard ("/").
+        // After login: go straight to the dashboard ("/").
         // The dashboard itself sends you to /profile-setup if you have no profile yet.
-        navigate("/", { replace: true });
+        goToDashboard();
       } else {
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -133,6 +162,15 @@ export default function Auth() {
 
   return (
     <div className="auth-container">
+
+      {/* Corner button: appears when you are logged in, so you are never stuck here */}
+      {loggedIn && (
+        <button type="button" className="auth-corner" onClick={goToDashboard}>
+          DASHBOARD
+          <ArrowRight />
+        </button>
+      )}
+
       <div className="auth-layout">
 
         {/* Brand side (laptops only) */}

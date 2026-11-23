@@ -987,3 +987,42 @@ html, body, #root {
   .auth-logo h1   { font-size: 24px; letter-spacing: 5px; }
   .auth-heading h2 { font-size: 20px; }
 }
+
+
+/* ---------------------------------------------------------------------
+   11) CORNER BUTTON - "DASHBOARD →" (top right, only when logged in)
+   --------------------------------------------------------------------- */
+.auth-corner {
+  position: fixed;
+  top: calc(14px + env(safe-area-inset-top, 0px));
+  right: calc(14px + env(safe-area-inset-right, 0px));
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;                      /* easy to tap */
+  padding: 0 16px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  color: #04202a;
+  background: linear-gradient(135deg, #6ff7ff, var(--cyan) 55%, #12bfe0);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: 0 0 0 4px rgba(34,229,255,.12), 0 8px 24px rgba(34,229,255,.35);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform .15s, filter .15s, box-shadow .2s;
+}
+.auth-corner svg { transition: transform .2s; }
+.auth-corner:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.auth-corner:active { transform: scale(.96); }
+@media (hover: hover) {
+  .auth-corner:hover { transform: translateY(-2px); filter: brightness(1.08); }
+  .auth-corner:hover svg { transform: translateX(3px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-corner, .auth-corner svg { transition: none; }
+}
