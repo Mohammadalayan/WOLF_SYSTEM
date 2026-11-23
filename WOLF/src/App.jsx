@@ -5,7 +5,7 @@ import { Routes, Route } from 'react-router-dom';
 import Workout from './WorkoutTimer.jsx';
 import FitnessHome from './FitnessHome.jsx';
 import Apifetch from './api.jsx';
-import Auth from './auth.jsx';
+import Auth from './Auth.jsx';
 import ProfileSetup from "./ProfileSetup.jsx";
 function App() {
   return (
