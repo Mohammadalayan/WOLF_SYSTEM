@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { supabase } from "./supabase.js";
-import "./ProfileSetup.css";
+import "./profile-setup.css";
 /* ---------- Icons ---------- */
 const Logo = () => (
   <svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true">
