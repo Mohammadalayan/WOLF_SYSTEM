@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "./supabase.js";
-import "./profile-setup.css";
+import "./auth.css";
+
 /* ---------- Icons ---------- */
 const Logo = () => (
   <svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true">
@@ -69,6 +71,7 @@ function getStrength(pw) {
 const STRENGTH_LABEL = ["Too short", "Weak", "Good", "Strong"];
 
 export default function Auth() {
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -93,6 +96,10 @@ export default function Auth() {
         if (error) throw error;
 
         setMessage("Login successful!");
+
+        // After login: go to the dashboard ("/").
+        // The dashboard itself sends you to /profile-setup if you have no profile yet.
+        navigate("/", { replace: true });
       } else {
         const { data, error } = await supabase.auth.signUp({
           email,
